@@ -3,13 +3,36 @@
 #include "Log/Log.h"
 
 
+auto makeSessionFunction = []()
+                                    {
+                                        CONSOLE('\n', "1й", '\n');
+                                        sleep(5);
+                                    };
+
+auto joinSessionFunction = []()
+                                    {
+                                        CONSOLE('\n', "2й", '\n');
+                                        sleep(5);
+                                    };
+
+auto exitGameFunction = []()
+                                    {
+                                        SUCCESS("Всего хорошего!\n");
+                                        exit(0);
+                                    };
+
+CNCInterface interface;
+
+
 int main()
 {
-    CNCInterface in;
+    interface.setHeadline("Крестики-нолики online");
 
-    in.setHeadline("Проверка");
+    interface.addInterfaceItem('1', {"Создать сессию", makeSessionFunction});
+    
+    interface.addInterfaceItem('2', {"Присоединиться к сессии", joinSessionFunction});
 
-    in.addInterfaceItem('1', {"Вывод проверки", [](){CONSOLE('\n', "111", '\n');}});
+    interface.addInterfaceItem('3', {"Выйти из игры", exitGameFunction});
 
-    in();
+    interface();
 }

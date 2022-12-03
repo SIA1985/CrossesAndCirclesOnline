@@ -5,6 +5,15 @@
 #include <string>
 
 
+enum class InterfaceErrors : unsigned short
+{
+    NoErrors        = 0,
+    IncorrectInput  = 1,
+    NoSuchKey       = 2,
+    InvalidFunction = 3
+};
+
+
 typedef char Key;
 
 struct InterfaceFunction
@@ -54,12 +63,16 @@ protected:
 
     void processKey();
 
+    void proccesError();
+
 public:
     void draw() override;
 
 private:
     std::string headline;
-    std::unordered_map<Key, InterfaceFunction> keysAndFunctions;
+    std::map<Key, InterfaceFunction> keysAndFunctions;
 
     std::string inputBuffer;
+
+    InterfaceErrors error = InterfaceErrors::NoErrors;
 };

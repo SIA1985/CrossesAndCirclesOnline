@@ -14,6 +14,8 @@ void CNCInterface::addInterfaceItem(Key __key, InterfaceFunction __function)
 
 void CNCInterface::operator()()
 {
+    SAVE_CURSOR_POSITION();
+
     while(true)
     {
         draw();
@@ -24,7 +26,7 @@ void CNCInterface::operator()()
     
 void CNCInterface::getInput() 
 {
-    std::cin >> inputBuffer;
+    INPUT(inputBuffer);
     
     processInput();
 }
@@ -34,8 +36,10 @@ void CNCInterface::processInput()
 {
     if(inputBuffer.size() != 1)
     {
-        LOG("Inccorect input");
+        error = InterfaceErrors::IncorrectInput;
+
         inputBuffer.clear();
+
         return;
     }
 
@@ -45,20 +49,53 @@ void CNCInterface::processInput()
 void CNCInterface::processKey()
 {
     Key inputKey = *inputBuffer.begin();
+
     auto mapIterator = keysAndFunctions.find(inputKey);
 
     if(mapIterator == keysAndFunctions.end())
     {
-        LOG("No such key");
+        
+        error = InterfaceErrors::NoSuchKey;
+
         inputBuffer.clear();
+
+        return;
     }
+
+    CLEAR_ALL();
 
     auto function = (*mapIterator).second;
     function();
 }
 
+void CNCInterface::proccesError()
+{
+    switch (error)
+    {
+    case InterfaceErrors::NoErrors:
+        break;
+    
+    case InterfaceErrors::IncorrectInput:
+
+        LOG("Incorrect input!");
+
+        error = InterfaceErrors::NoErrors;
+        break;
+    case InterfaceErrors::NoSuchKey:
+
+        LOG("No such key!");
+
+        error = InterfaceErrors::NoErrors;
+        break;
+    default:
+        break;
+    }
+}
+
 void CNCInterface::draw()
 {
+    CLEAR_ALL();
+
     CONSOLE('\n', headline, '\n');
 
     for(auto& keyAndFunctonPair : keysAndFunctions)
@@ -70,4 +107,6 @@ void CNCInterface::draw()
         CONSOLE('(', key, ')');
 
     }
+
+    proccesError();
 }
