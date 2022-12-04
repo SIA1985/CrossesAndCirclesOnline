@@ -65,7 +65,6 @@ protected:
 
     void proccesError();
 
-public:
     void draw() override;
 
 private:

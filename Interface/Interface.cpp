@@ -77,19 +77,18 @@ void CNCInterface::proccesError()
     
     case InterfaceErrors::IncorrectInput:
 
-        LOG("Incorrect input!");
-
-        error = InterfaceErrors::NoErrors;
+        LOG("Неверный ввод!");
         break;
+
     case InterfaceErrors::NoSuchKey:
 
-        LOG("No such key!");
-
-        error = InterfaceErrors::NoErrors;
+        LOG("Такого ключа - нет!");
         break;
     default:
         break;
     }
+
+    error = InterfaceErrors::NoErrors;
 }
 
 void CNCInterface::draw()
