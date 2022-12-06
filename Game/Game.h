@@ -126,6 +126,12 @@ protected:
 
     GameStatus checkWin() override;
 
+    void drawTopNumering();
+
+    void drawLeftSideNumering();
+
+    void drawGameStatus();
+
     void display();
 
     char getSymbolByCell(CellStatus __status);
@@ -156,7 +162,11 @@ private:
 
     std::string input;
 
+    GameStatus status = GameStatus::GameContinues; 
+
     GameErrors error = GameErrors::NoErrors;
+
+    short leftSideNumering = 0;
 };
 
 

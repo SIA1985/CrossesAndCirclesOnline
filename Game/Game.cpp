@@ -153,9 +153,9 @@ void CNCGame::addEval(ushort __x, ushort __y)
 {
     auto currentMoveEval = getEval();
 
-    evals.rowsEvals[__y] += currentMoveEval;
+    evals.rowsEvals[__x] += currentMoveEval;
 
-    evals.columnsEvals[__x] += currentMoveEval;
+    evals.columnsEvals[__y] += currentMoveEval;
 
     if(__x == __y)
         evals.mainDiagonalEval += currentMoveEval;
@@ -204,36 +204,87 @@ void CNCGame::operator()()
 
     while(true)
     {
+        //while(notConneted){};
+
         display();
 
+        //if smone wins - stop input
         if(!getInput(x, y))
             continue;
 
         if(!makeMove(x, y))
             continue;
 
-
-        //checkWin
+        status = checkWin();
     }
+}
+
+void CNCGame::drawTopNumering()
+{
+    CONSOLE("   ", "    ", "");
+
+    for(short k = 0; k < fieldDim; k++)
+        CONSOLE(k, " ", "  ");
+
+    CONSOLE("\n", "", "\n");
+}
+
+void CNCGame::drawLeftSideNumering()
+{
+    CONSOLE(" ", leftSideNumering++, "");      
+    CONSOLE("   ", '|', "");
+
+    if(leftSideNumering == fieldDim)
+        leftSideNumering = 0;
+}
+
+void CNCGame::drawGameStatus()
+{
+    std::string output;
+
+    switch (status)
+    {
+    case GameStatus::GameContinues:
+        return;
+
+    case GameStatus::CrossWin:
+        output = "Крестики выиграли!";
+        break;
+
+    case GameStatus::CircleWin:
+        output = "Нолики выиграли!";
+        break;
+
+    case GameStatus::Draw:
+        output = "Ничья!";
+        break;
+    }
+
+    CONSOLE('\n', output, '\n');
 }
 
 void CNCGame::display(/*streamToDraw*/)
 {
     CLEAR_ALL_TERMINAL();
 
+    drawTopNumering();
+
     for(auto& i : gameField.field)
     {
-        CONSOLE("   ", '|', "");
+        drawLeftSideNumering();
 
         for(auto& j : i)
         {
-            CONSOLE(' ', getSymbolByCell(j.status), " |");
+
+            CONSOLE(" ", getSymbolByCell(j.status), " |");
         }
 
         CONSOLE('\n', "", "";)
     }
 
     logErrors();
+
+    drawGameStatus();
 }
 
 char CNCGame::getSymbolByCell(CellStatus __status)
