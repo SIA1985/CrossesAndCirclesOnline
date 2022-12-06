@@ -26,7 +26,8 @@ void CNCInterface::operator()()
     
 void CNCInterface::getInput() 
 {
-    INPUT(inputBuffer);
+    CONSOLE("", "\n> ", "");
+    std::cin >> inputBuffer;
     
     processInput();
 }
@@ -62,13 +63,13 @@ void CNCInterface::processKey()
         return;
     }
 
-    CLEAR_ALL();
+    CLEAR_ALL_TERMINAL();
 
     auto function = (*mapIterator).second;
     function();
 }
 
-void CNCInterface::proccesError()
+void CNCInterface::logError()
 {
     switch (error)
     {
@@ -93,7 +94,7 @@ void CNCInterface::proccesError()
 
 void CNCInterface::draw()
 {
-    CLEAR_ALL();
+    CLEAR_ALL_TERMINAL();
 
     CONSOLE('\n', headline, '\n');
 
@@ -107,5 +108,5 @@ void CNCInterface::draw()
 
     }
 
-    proccesError();
+    logError();
 }

@@ -3,12 +3,11 @@
 #include "Game/Game.h"
 #include "Log/Log.h"
 
-
+CNCGame game(3);
 
 auto makeSessionFunction = []()
                                     {
-                                        CONSOLE('\n', "1й", '\n');
-                                        sleep(5);
+                                        game();
                                     };
 
 auto joinSessionFunction = []()

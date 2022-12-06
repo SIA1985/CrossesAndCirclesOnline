@@ -63,7 +63,7 @@ protected:
 
     void processKey();
 
-    void proccesError();
+    void logError();
 
     void draw() override;
 
