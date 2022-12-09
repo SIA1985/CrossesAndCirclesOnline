@@ -1,6 +1,9 @@
 #include "Game.h"
 #include "../Log/Log.h"
 
+#include <fstream>
+#include <chrono>
+
 
 void CNCGameField::init(ushort __n)
 {
@@ -85,7 +88,7 @@ CNCGame::CNCGame(ushort __fieldDim)
     fieldDim = __fieldDim;
 
     crossWinScore = -fieldDim;
-    crossWinScore = fieldDim;
+    circleWinScore = fieldDim;
 
     moveCounter = fieldDim * fieldDim;
 }
@@ -123,13 +126,13 @@ void CNCGame::initField(ushort __fieldDim)
 
 bool CNCGame::getInput(ushort& __x, ushort& __y)
 {
-    CONSOLE("", "\n> ", "");
+    CONSOLE('\n', "> ", "");
     std::cin >> input;
 
-    return proccessInput(__x, __y);
+    return proccessGameInput(__x, __y);
 }
 
-bool CNCGame::proccessInput(ushort& __x, ushort& __y)
+bool CNCGame::proccessGameInput(ushort& __x, ushort& __y)
 {
     if(input.size() != 2 || int(input[0]) < 48 || int(input[1]) < 48 
                          || int(input[0]) > 57 || int(input[1]) > 57)
@@ -142,6 +145,24 @@ bool CNCGame::proccessInput(ushort& __x, ushort& __y)
     __y = short(input[1]) - 48;
 
     return true;
+}
+
+bool CNCGame::proccessSaveResultsInput()
+{
+    if(input.size() != 1 || (input != "y" && input != "n"))
+    {
+        error = GameErrors::IncorrectInput;
+        return false;
+    }
+    
+    if(input == "y")
+    {
+        saveResultsInFile();
+        return true;
+    }
+
+    return true;
+    
 }
 
 short CNCGame::getEval()
@@ -160,20 +181,20 @@ void CNCGame::addEval(ushort __x, ushort __y)
     if(__x == __y)
         evals.mainDiagonalEval += currentMoveEval;
 
-    if(__x == fieldDim - __y or __y == fieldDim - __x or __x == __y)
+    if(__x == fieldDim - 1 - __y || __y == fieldDim - 1 - __x)
             evals.submainDiagonalEval += currentMoveEval;
 }
 
 GameStatus CNCGame::checkWin()
 {
-    if(evals.mainDiagonalEval == circleWinScore or evals.submainDiagonalEval == circleWinScore)
+    if(evals.mainDiagonalEval == circleWinScore || evals.submainDiagonalEval == circleWinScore)
         return GameStatus::CircleWin;
 
-    if(evals.mainDiagonalEval == crossWinScore or evals.submainDiagonalEval == crossWinScore)
+    if(evals.mainDiagonalEval == crossWinScore || evals.submainDiagonalEval == crossWinScore)
         return GameStatus::CrossWin;
 
 
-    for(auto& i : evals.rowsEvals)
+    for(auto i : evals.rowsEvals)
     {
         if(i == circleWinScore)
             return GameStatus::CircleWin;
@@ -182,7 +203,7 @@ GameStatus CNCGame::checkWin()
             return GameStatus::CrossWin;
     }
 
-    for(auto& j : evals.columnsEvals)
+    for(auto j : evals.columnsEvals)
     {
         if(j == circleWinScore)
             return GameStatus::CircleWin;
@@ -198,7 +219,7 @@ GameStatus CNCGame::checkWin()
         return GameStatus::GameContinues;
 }
 
-void CNCGame::operator()()
+void CNCGame::operator()() //bool if gameSaved?
 {
     ushort x, y;
 
@@ -208,83 +229,108 @@ void CNCGame::operator()()
 
         display();
 
-        //if smone wins - stop input
+        if(status != GameStatus::GameContinues)
+        {
+            if(save())
+                break;
+            
+            continue;
+        }
+
         if(!getInput(x, y))
             continue;
 
+        //if smone wins - stop making moves
         if(!makeMove(x, y))
             continue;
 
         status = checkWin();
+
     }
 }
 
-void CNCGame::drawTopNumering()
+void CNCGame::restartGame()
 {
-    CONSOLE("   ", "    ", "");
+    cleanEvals();
+    cleanField();
 
-    for(short k = 0; k < fieldDim; k++)
-        CONSOLE(k, " ", "  ");
-
-    CONSOLE("\n", "", "\n");
+    status = GameStatus::GameContinues;
 }
 
-void CNCGame::drawLeftSideNumering()
+template<typename T>
+void CNCGame::drawTopNumbering(T& __stream)
 {
-    CONSOLE(" ", leftSideNumering++, "");      
-    CONSOLE("   ", '|', "");
+    IN_STREAM_CONSOLE(__stream, "   ", "    ", "");
+
+    for(short k = 0; k < fieldDim; k++)
+    {
+        IN_STREAM_CONSOLE(__stream, "", k, "   ");
+    }
+
+    IN_STREAM_CONSOLE(__stream, "\n", "", "\n");
+}
+
+template<typename T>
+void CNCGame::drawLeftSideNumbering(T& __stream)
+{
+    IN_STREAM_CONSOLE(__stream, " ", leftSideNumering++, "");      
 
     if(leftSideNumering == fieldDim)
         leftSideNumering = 0;
 }
 
-void CNCGame::drawGameStatus()
+template<typename T>
+void CNCGame::drawGameStatus(T& __stream)
 {
-    std::string output;
-
     switch (status)
     {
     case GameStatus::GameContinues:
         return;
 
     case GameStatus::CrossWin:
-        output = "Крестики выиграли!";
+        IN_STREAM_CONSOLE(__stream, '\n', "Крестики выиграли!", '\n');
         break;
 
     case GameStatus::CircleWin:
-        output = "Нолики выиграли!";
+        IN_STREAM_CONSOLE(__stream, '\n', "Нолики выиграли!", '\n');
         break;
 
     case GameStatus::Draw:
-        output = "Ничья!";
+        IN_STREAM_CONSOLE(__stream, '\n', "Ничья!", '\n');
         break;
     }
-
-    CONSOLE('\n', output, '\n');
 }
 
-void CNCGame::display(/*streamToDraw*/)
+template<typename T>
+void CNCGame::drawGame(T& __stream)
 {
-    CLEAR_ALL_TERMINAL();
+    drawTopNumbering<T>(__stream); 
 
-    drawTopNumering();
-
-    for(auto& i : gameField.field)
+    for(auto& i : gameField.field)  
     {
-        drawLeftSideNumering();
+        drawLeftSideNumbering<T>(__stream);
+
+        IN_STREAM_CONSOLE(__stream, "   ", '|', "");
 
         for(auto& j : i)
         {
 
-            CONSOLE(" ", getSymbolByCell(j.status), " |");
+            IN_STREAM_CONSOLE(__stream, " ", getSymbolByCell(j.status), " |");
         }
 
-        CONSOLE('\n', "", "";)
-    }
+        IN_STREAM_CONSOLE(__stream, '\n', "", "");
+    }   
+}
+
+void CNCGame::display()
+{
+    CLEAR_ALL_TERMINAL();
+
+    drawGame<std::ostream>(std::cout);
+
+    drawGameStatus<std::ostream>(std::cout);
 
     logErrors();
-
-    drawGameStatus();
 }
 
 char CNCGame::getSymbolByCell(CellStatus __status)
@@ -305,9 +351,28 @@ char CNCGame::getSymbolByCell(CellStatus __status)
 }
 
 
-void CNCGame::saveResults()
+bool CNCGame::save()
 {
-    
+    CONSOLE('\n', "Сохранить результат? (y/n)", "");
+    CONSOLE('\n', "> ", "");
+
+    std::cin >> input;
+
+    return proccessSaveResultsInput();
+}
+
+void CNCGame::saveResultsInFile()
+{
+    auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+    std::ofstream saveFile("Игра от " + std::string(std::ctime(&currentTime)));
+
+    IN_STREAM_CONSOLE(saveFile, "", "Игра от", " ");
+    IN_STREAM_CONSOLE(saveFile, "", std::string(std::ctime(&currentTime)), "\n\n");
+
+    drawGame<std::ofstream>(saveFile);
+
+    drawGameStatus<std::ostream>(saveFile);
 }
 
 void CNCGame::logErrors()

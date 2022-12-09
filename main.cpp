@@ -3,17 +3,21 @@
 #include "Game/Game.h"
 #include "Log/Log.h"
 
-CNCGame game(3);
 
 auto makeSessionFunction = []()
                                     {
-                                        game();
+                                        //Player-server:
+                                        CNCGame serverGame(3);
+                                        serverGame();
                                     };
 
 auto joinSessionFunction = []()
                                     {
-                                        CONSOLE('\n', "2й", '\n');
-                                        sleep(5);
+                                        //Player-client
+
+                                        //Cient client
+                                        //client.join()
+                                        //client.play
                                     };
 
 auto exitGameFunction = []()

@@ -109,6 +109,8 @@ public:
 
     void operator()() override;
 
+    void restartGame();
+
 protected:
     void initEvals(ushort __fieldDim);
 
@@ -116,7 +118,9 @@ protected:
 
     bool getInput(ushort& __x, ushort& __y);
 
-    bool proccessInput(ushort& __x, ushort& __y);
+    bool proccessGameInput(ushort& __x, ushort& __y);
+
+    bool proccessSaveResultsInput();
 
     bool makeMove(ushort __x, ushort __y) override;
 
@@ -126,11 +130,17 @@ protected:
 
     GameStatus checkWin() override;
 
-    void drawTopNumering();
+    template<typename T>
+    void drawTopNumbering(T& __stream);
 
-    void drawLeftSideNumering();
+    template<typename T>
+    void drawLeftSideNumbering(T& __stream);
 
-    void drawGameStatus();
+    template<typename T>
+    void drawGameStatus(T& __stream);
+
+    template<typename T>
+    void drawGame(T& __stream);
 
     void display();
 
@@ -140,13 +150,16 @@ protected:
 
     void cleanEvals();
 
+    void saveResultsInFile();
+
 public:
-    void saveResults();
+    bool save();
 
     void cleanField() override;
 
 private:
     bool roolFlag = false; //If false - take cross, true - circle
+    bool gameOverFlag = false;
     int moveCounter;
 
     ushort fieldDim;
