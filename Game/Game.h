@@ -11,7 +11,6 @@ enum class FieldErrors : ushort
      NoErrors           = 0,
      NoSuchCell         = 1,
      CellIsBusy         = 2,
-     IncorrectInput     = 3
 
 };
 
@@ -72,7 +71,7 @@ protected:
 
     virtual GameStatus checkWin() = 0;
 
-    virtual void cleanField() = 0;
+    virtual void restart() = 0;
 };
 
 
@@ -109,12 +108,13 @@ public:
 
     void operator()() override;
 
-    void restartGame();
+    void restart() override;
 
 protected:
     void initEvals(ushort __fieldDim);
 
     void initField(ushort __fieldDim);
+
 
     bool getInput(ushort& __x, ushort& __y);
 
@@ -122,13 +122,17 @@ protected:
 
     bool proccessSaveResultsInput();
 
+
     bool makeMove(ushort __x, ushort __y) override;
+
+    void gameProccessing(ushort __x, ushort __y);
 
     void addEval(ushort __x, ushort __y);
 
     short getEval();
 
     GameStatus checkWin() override;
+
 
     template<typename T>
     void drawTopNumbering(T& __stream);
@@ -148,18 +152,21 @@ protected:
 
     void logErrors();
 
+
     void cleanEvals();
+
+     void cleanField();
+
 
     void saveResultsInFile();
 
 public:
     bool save();
 
-    void cleanField() override;
-
 private:
     bool roolFlag = false; //If false - take cross, true - circle
     bool gameOverFlag = false;
+
     int moveCounter;
 
     ushort fieldDim;
@@ -170,8 +177,9 @@ private:
     EvalMatrix evals;
     short crossEval = -1;
     short circleEval = 1;
-    short crossWinScore;
-    short circleWinScore;
+
+    short crossWinEval;
+    short circleWinEval;
 
     std::string input;
 

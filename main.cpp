@@ -3,12 +3,29 @@
 #include "Game/Game.h"
 #include "Log/Log.h"
 
+#include <string>
 
 auto makeSessionFunction = []()
                                     {
+                                        /*
+                                        Player-Server() :
+                                        while(true)
+                                        {
+                                            Game();
+
+                                            Restart?
+                                                Game.restart()
+                                            break;
+                                        }*/
                                         //Player-server:
-                                        CNCGame serverGame(3);
-                                        serverGame();
+                                        // CNCGame serverGame(5); // спросить о размерности поля
+                                        // serverGame();
+
+                                        int socket;
+                                        std::string ip;
+                                        std::cin >> socket >> ip;
+                                        Client client(ip.c_str(), socket);
+                                        client.Connect();
                                     };
 
 auto joinSessionFunction = []()
@@ -18,6 +35,11 @@ auto joinSessionFunction = []()
                                         //Cient client
                                         //client.join()
                                         //client.play
+                                        int socket;
+                                        std::string ip;
+                                        std::cin >> socket >> ip;
+                                        Server server(ip.c_str(), socket);
+                                        server.Connect();
                                     };
 
 auto exitGameFunction = []()

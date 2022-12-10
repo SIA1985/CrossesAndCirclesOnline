@@ -87,26 +87,10 @@ CNCGame::CNCGame(ushort __fieldDim)
 
     fieldDim = __fieldDim;
 
-    crossWinScore = -fieldDim;
-    circleWinScore = fieldDim;
+    crossWinEval = -fieldDim;
+    circleWinEval = fieldDim;
 
     moveCounter = fieldDim * fieldDim;
-}
-
-bool CNCGame::makeMove(ushort __x, ushort __y) 
-{
-    auto whosMakeNow = roolFlag ? CellStatus::Circle : CellStatus::Cross;
-
-    if(!gameField.takeCell(__x, __y, whosMakeNow))
-        return false;
-
-    addEval(__x, __y);
-
-    roolFlag = !roolFlag;
-    
-    moveCounter--;
-
-    return true;
 }
 
 void CNCGame::initEvals(ushort __fieldDim)
@@ -123,6 +107,49 @@ void CNCGame::initField(ushort __fieldDim)
 {
     gameField.init(__fieldDim);
 }
+
+
+bool CNCGame::makeMove(ushort __x, ushort __y) 
+{
+    auto whosMakeNow = roolFlag ? CellStatus::Circle : CellStatus::Cross;
+
+    if(!gameField.takeCell(__x, __y, whosMakeNow))
+        return false;
+
+    gameProccessing(__x, __y);
+
+    return true;
+}
+
+void CNCGame::gameProccessing(ushort __x, ushort __y)
+{
+    addEval(__x, __y);
+
+    roolFlag = !roolFlag;
+    
+    moveCounter--;
+}
+
+void CNCGame::addEval(ushort __x, ushort __y)
+{
+    auto currentMoveEval = getEval();
+
+    evals.rowsEvals[__x] += currentMoveEval;
+
+    evals.columnsEvals[__y] += currentMoveEval;
+
+    if(__x == __y)
+        evals.mainDiagonalEval += currentMoveEval;
+
+    if(__x == fieldDim - 1 - __y || __y == fieldDim - 1 - __x)
+            evals.submainDiagonalEval += currentMoveEval;
+}
+
+short CNCGame::getEval()
+{
+    return roolFlag ? circleEval : crossEval;
+}
+
 
 bool CNCGame::getInput(ushort& __x, ushort& __y)
 {
@@ -147,79 +174,8 @@ bool CNCGame::proccessGameInput(ushort& __x, ushort& __y)
     return true;
 }
 
-bool CNCGame::proccessSaveResultsInput()
-{
-    if(input.size() != 1 || (input != "y" && input != "n"))
-    {
-        error = GameErrors::IncorrectInput;
-        return false;
-    }
-    
-    if(input == "y")
-    {
-        saveResultsInFile();
-        return true;
-    }
 
-    return true;
-    
-}
-
-short CNCGame::getEval()
-{
-    return roolFlag ? circleEval : crossEval;
-}
-
-void CNCGame::addEval(ushort __x, ushort __y)
-{
-    auto currentMoveEval = getEval();
-
-    evals.rowsEvals[__x] += currentMoveEval;
-
-    evals.columnsEvals[__y] += currentMoveEval;
-
-    if(__x == __y)
-        evals.mainDiagonalEval += currentMoveEval;
-
-    if(__x == fieldDim - 1 - __y || __y == fieldDim - 1 - __x)
-            evals.submainDiagonalEval += currentMoveEval;
-}
-
-GameStatus CNCGame::checkWin()
-{
-    if(evals.mainDiagonalEval == circleWinScore || evals.submainDiagonalEval == circleWinScore)
-        return GameStatus::CircleWin;
-
-    if(evals.mainDiagonalEval == crossWinScore || evals.submainDiagonalEval == crossWinScore)
-        return GameStatus::CrossWin;
-
-
-    for(auto i : evals.rowsEvals)
-    {
-        if(i == circleWinScore)
-            return GameStatus::CircleWin;
-
-        if(i == crossWinScore)
-            return GameStatus::CrossWin;
-    }
-
-    for(auto j : evals.columnsEvals)
-    {
-        if(j == circleWinScore)
-            return GameStatus::CircleWin;
-
-        if(j == crossWinScore)
-            return GameStatus::CrossWin;
-    }
-
-    
-    if(moveCounter == 0)
-        return GameStatus::Draw;
-    else    
-        return GameStatus::GameContinues;
-}
-
-void CNCGame::operator()() //bool if gameSaved?
+void CNCGame::operator()()
 {
     ushort x, y;
 
@@ -240,21 +196,79 @@ void CNCGame::operator()() //bool if gameSaved?
         if(!getInput(x, y))
             continue;
 
-        //if smone wins - stop making moves
         if(!makeMove(x, y))
             continue;
 
         status = checkWin();
-
     }
 }
 
-void CNCGame::restartGame()
+GameStatus CNCGame::checkWin()
 {
-    cleanEvals();
-    cleanField();
+    if(evals.mainDiagonalEval == circleWinEval || evals.submainDiagonalEval == circleWinEval)
+        return GameStatus::CircleWin;
 
-    status = GameStatus::GameContinues;
+    if(evals.mainDiagonalEval == crossWinEval || evals.submainDiagonalEval == crossWinEval)
+        return GameStatus::CrossWin;
+
+
+    for(auto i : evals.rowsEvals)
+    {
+        if(i == circleWinEval)
+            return GameStatus::CircleWin;
+
+        if(i == crossWinEval)
+            return GameStatus::CrossWin;
+    }
+
+    for(auto j : evals.columnsEvals)
+    {
+        if(j == circleWinEval)
+            return GameStatus::CircleWin;
+
+        if(j == crossWinEval)
+            return GameStatus::CrossWin;
+    }
+
+    
+    if(moveCounter == 0)
+        return GameStatus::Draw;
+    else    
+        return GameStatus::GameContinues;
+}
+
+
+void CNCGame::display()
+{
+    CLEAR_ALL_TERMINAL();
+
+    drawGame<std::ostream>(std::cout);
+
+    drawGameStatus<std::ostream>(std::cout);
+
+    logErrors();
+}
+
+
+template<typename T>
+void CNCGame::drawGame(T& __stream)
+{
+    drawTopNumbering<T>(__stream); 
+
+    for(auto& i : gameField.field)  
+    {
+        drawLeftSideNumbering<T>(__stream);
+
+        IN_STREAM_CONSOLE(__stream, "   ", '|', "");
+
+        for(auto& j : i)
+        {
+
+            IN_STREAM_CONSOLE(__stream, " ", getSymbolByCell(j.status), " |");
+        }
+
+        IN_STREAM_CONSOLE(__stream, '\n', "", "");
+    }   
 }
 
 template<typename T>
@@ -301,36 +315,19 @@ void CNCGame::drawGameStatus(T& __stream)
     }
 }
 
-template<typename T>
-void CNCGame::drawGame(T& __stream)
+void CNCGame::logErrors()
 {
-    drawTopNumbering<T>(__stream); 
-
-    for(auto& i : gameField.field)  
+    switch (error)
     {
-        drawLeftSideNumbering<T>(__stream);
+    case GameErrors::IncorrectInput:
+        LOG("Неккоректный ввод!");
+        error = GameErrors::NoErrors;
+        break;
+    case GameErrors::NoErrors:
+        break;
+    }
 
-        IN_STREAM_CONSOLE(__stream, "   ", '|', "");
-
-        for(auto& j : i)
-        {
-
-            IN_STREAM_CONSOLE(__stream, " ", getSymbolByCell(j.status), " |");
-        }
-
-        IN_STREAM_CONSOLE(__stream, '\n', "", "");
-    }   
-}
-
-void CNCGame::display()
-{
-    CLEAR_ALL_TERMINAL();
-
-    drawGame<std::ostream>(std::cout);
-
-    drawGameStatus<std::ostream>(std::cout);
-
-    logErrors();
+    gameField.logError();
 }
 
 char CNCGame::getSymbolByCell(CellStatus __status)
@@ -344,10 +341,8 @@ char CNCGame::getSymbolByCell(CellStatus __status)
         return 'X';
 
     case CellStatus::Empty:
-        break;
+        return '-';
     }
-
-    return '-';
 }
 
 
@@ -359,6 +354,24 @@ bool CNCGame::save()
     std::cin >> input;
 
     return proccessSaveResultsInput();
+}
+
+bool CNCGame::proccessSaveResultsInput()
+{
+    if(input.size() != 1 || (input != "y" && input != "n"))
+    {
+        error = GameErrors::IncorrectInput;
+        return false;
+    }
+    
+    if(input == "y")
+    {
+        saveResultsInFile();
+        return true;
+    }
+
+    return true;
+    
 }
 
 void CNCGame::saveResultsInFile()
@@ -375,19 +388,13 @@ void CNCGame::saveResultsInFile()
     drawGameStatus<std::ostream>(saveFile);
 }
 
-void CNCGame::logErrors()
-{
-    switch (error)
-    {
-    case GameErrors::IncorrectInput:
-        LOG("Неккоректный ввод!");
-        error = GameErrors::NoErrors;
-        break;
-    case GameErrors::NoErrors:
-        break;
-    }
 
-    gameField.logError();
+void CNCGame::restart()
+{
+    cleanEvals();
+    cleanField();
+
+    status = GameStatus::GameContinues;
 }
 
 void CNCGame::cleanEvals()
@@ -405,8 +412,6 @@ void CNCGame::cleanEvals()
 void CNCGame::cleanField()
 {
     gameField.cleanCells();
-
-    cleanEvals();
 
     roolFlag = false;
 

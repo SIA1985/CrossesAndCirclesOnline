@@ -7,7 +7,21 @@
 #include <string>
 
 
-class NetworkMember
+class NetworkMemberBase 
+{
+public:
+    virtual int TryToConnect() = 0;
+
+    virtual void Reconnect();
+
+    virtual void Connect() = 0;
+
+    virtual void SendMessage() = 0;
+
+    virtual void RecievMessage() = 0;
+};
+
+class NetworkMember 
 {
 public:
     NetworkMember(const char* __ipAdress, uint16_t __socket);
@@ -25,7 +39,7 @@ public:
 
     virtual void RecievMessage() = 0;
 
-    std::string GetBuffer() { return buffer; }
+    std::string GetBuffer() { return buffer; } //В cpp
 
     void ClearBuffer() { buffer.clear(); }
 
@@ -33,11 +47,12 @@ public:
 
 protected:
     bool Connected = false; 
+
     int socketDescriptor = -1;
     struct sockaddr_in socketParams;
 
     std::string buffer;
-    char* recvBuffer = new char[2];
+    char* recvBuffer = new char[4];
 
     void SendMessagePrototype(int __socketDescriptor);
 

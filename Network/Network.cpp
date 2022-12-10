@@ -1,24 +1,23 @@
 #include "Network.h"
 #include "algorithm"
 #include <arpa/inet.h>
-#include <iostream>
+#include "../Log/Log.h"
 
-#define CONSOLE(a) std::cout << a;
-#define LOG(a) std::cerr << a;
 
-// NetworkMember
 NetworkMember::NetworkMember(const char* __ipAdress, uint16_t __socket)
 {
     socketDescriptor = socket(AF_INET, SOCK_STREAM, 0); //Ipv4 + TCP
     if(socketDescriptor < 0)
     {
-
+        std::cout << "\nCan't create socket...\n";
     }
 
-    socketParams.sin_family = AF_INET;
+    socketParams.sin_family = AF_INET; 
     socketParams.sin_port = htons(__socket);
-    //inet_pton(AF_INET, __ipAdress, &socketParams.sin_addr);
+   // inet_pton(AF_INET, __ipAdress, &socketParams.sin_addr);
+   std::cout << inet_addr(__ipAdress) << std::endl;
     socketParams.sin_addr.s_addr = htonl(INADDR_ANY);
+    std::cout <<socketParams.sin_addr.s_addr << std::endl;
 }
 
 void NetworkMember::Reconnect()
@@ -78,7 +77,6 @@ void NetworkMember::RecievMessagePrototype(int __socketDescriptor)
 }
 
 
-// Client
 Client::Client(const char* __ipAdress, uint16_t __socket) 
 : NetworkMember(__ipAdress, __socket)
 {
@@ -87,19 +85,21 @@ Client::Client(const char* __ipAdress, uint16_t __socket)
 
 int Client::TryToConnect()
 {
-    CONSOLE("\nTrying to connect...")
+    //CONSOLE("\nTrying to connect...")
+    std::cout << "\nTrying to connect...";
 
     int Result = connect(socketDescriptor, (struct sockaddr*)&socketParams, sizeof(socketParams));
 
     if(Result >= 0)
     {
-        CONSOLE("Connected!\n")
+     //   CONSOLE("Connected!\n")
+        std::cout << "\nConnected!";
         Connected = true;
         //Notify
     }
     else
     {
-        LOG("Connection is failed\nReconnection in 5 seconds...\n")
+  //      LOG("Connection is failed\nReconnection in 5 seconds...\n")
         Connected = false;
     }
 
@@ -140,15 +140,15 @@ void Client::RecievMessage()
 }
 
 
-// Server
 Server::Server(const char* __ipAdress, uint16_t __socket) 
 : NetworkMember(__ipAdress, __socket)
 {
     if(bind(socketDescriptor, (struct sockaddr*)&socketParams, sizeof(socketParams)) < 0)
     {
-        LOG("Can't bind socket\n")
-        
-        CONSOLE("Waiting while OS makes socket free...\n")
+ //       LOG("Can't bind socket\n")
+   //     CONSOLE("Waiting while OS makes socket free...\n")
+
+        std::cout << socketParams.sin_addr.s_addr << std::endl;
 
         while(bind(socketDescriptor, (struct sockaddr*)&socketParams, sizeof(socketParams)) < 0)
         {
@@ -171,11 +171,13 @@ int Server::TryToConnect()
 
     if(clientSocketDescriptor < 0)
     {
-        LOG("Can't accept\n")
+    //    LOG("Can't accept\n")
+        std::cout << "\nCan't accept\n";
     }
 
     Connected = true;
-    CONSOLE("Connected!\n")
+ //   CONSOLE("Connected!\n")
+    std::cout << "Connected!\n";
 
     return clientSocketDescriptor;
 }
