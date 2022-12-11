@@ -343,6 +343,8 @@ char CNCGame::getSymbolByCell(CellStatus __status)
     case CellStatus::Empty:
         return '-';
     }
+
+    return '-';
 }
 
 

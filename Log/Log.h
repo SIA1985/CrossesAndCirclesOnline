@@ -5,7 +5,7 @@
 
 #define IN_STREAM(stream, message)                                              stream << message
 
-#define LOG(log)                                                                std::cout << "\033[31m\nError: "  << log << "\033[37m\n"
+#define LOG(log)                                                                std::cout << "\033[31m\nОшибка: "  << log << "\033[37m\n"
 #define SUCCESS(message)                                                        std::cout << "\033[32m\n" << message << "\033[37m\n"
 #define CONSOLE(separateSymbol1, message, separateSymbol2)                      std::cout << separateSymbol1 << message << separateSymbol2
 

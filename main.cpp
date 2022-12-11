@@ -21,11 +21,13 @@ auto makeSessionFunction = []()
                                         // CNCGame serverGame(5); // спросить о размерности поля
                                         // serverGame();
 
-                                        int socket;
-                                        std::string ip;
-                                        std::cin >> socket >> ip;
-                                        Client client(ip.c_str(), socket);
-                                        client.Connect();
+                                        Server server;
+
+                                        server.Connect();
+
+                                        std::cout << " \nПодключено!\n";
+
+                                        sleep(5);   
                                     };
 
 auto joinSessionFunction = []()
@@ -34,17 +36,20 @@ auto joinSessionFunction = []()
 
                                         //Cient client
                                         //client.join()
-                                        //client.play
-                                        int socket;
-                                        std::string ip;
-                                        std::cin >> socket >> ip;
-                                        Server server(ip.c_str(), socket);
-                                        server.Connect();
+                                        //client.play()
+
+                                        Client client;
+
+                                        client.Connect();
+
+                                        std::cout << "\nПодключено!\n";
+
+                                        sleep(5);
                                     };
 
 auto exitGameFunction = []()
                                     {
-                                        SUCCESS("Всего хорошего!\n");
+                                        SUCCESS("Всего хорошего!");
                                         exit(0);
                                     };
 

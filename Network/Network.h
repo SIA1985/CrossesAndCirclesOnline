@@ -7,64 +7,58 @@
 #include <string>
 
 
-class NetworkMemberBase 
+enum class NetworkErrors : unsigned short
+{
+    NoErrors                = 0,   
+    CantCreateSocket        = 1,
+    CantConnect             = 2,
+    CantBindSocket          = 3,
+    CantAccept              = 4
+};
+
+class NetworkMemberBase
 {
 public:
-    virtual int TryToConnect() = 0;
-
-    virtual void Reconnect();
-
     virtual void Connect() = 0;
+
+    virtual void Reconnect() = 0;
 
     virtual void SendMessage() = 0;
 
     virtual void RecievMessage() = 0;
 };
 
-class NetworkMember 
+class NetworkMember : public NetworkMemberBase
 {
 public:
-    NetworkMember(const char* __ipAdress, uint16_t __socket);
-
-    virtual ~NetworkMember() {close(socketDescriptor); delete recvBuffer; }     
-
-
-    virtual int TryToConnect() = 0;
-
-    virtual void Reconnect();
-
     virtual void Connect() = 0;
+
+    virtual void Reconnect() = 0;
 
     virtual void SendMessage() = 0;
 
     virtual void RecievMessage() = 0;
 
-    std::string GetBuffer() { return buffer; } //В cpp
-
-    void ClearBuffer() { buffer.clear(); }
-
-    bool IsConnected() { return Connected; }
-
 protected:
-    bool Connected = false; 
-
-    int socketDescriptor = -1;
-    struct sockaddr_in socketParams;
-
-    std::string buffer;
-    char* recvBuffer = new char[4];
-
     void SendMessagePrototype(int __socketDescriptor);
 
     void RecievMessagePrototype(int __socketDescriptor);
+
+    void proccessError();
+
+    std::string buffer;
+    char* readWriteBuffer = new char[4];
+
+    NetworkErrors error = NetworkErrors::NoErrors;
 };
+
 
 class Client : public NetworkMember
 {
 public:
-    Client(const char* __ipAdress, uint16_t __socket);
+    Client();
 
-    int TryToConnect() override;
+    bool TryToConnect(std::string __serverIPAddress, uint16_t __sereverSocket);
 
     void Connect() override;
 
@@ -73,21 +67,36 @@ public:
     void SendMessage() override;
 
     void RecievMessage() override;
+
+protected:
+    void getUserInput(std::string& __serverIPAddress, uint16_t& __sereverSocket);
+
+private:
+    int serverSocketDescriptor;
+    struct sockaddr_in serverSocketParams;
 };
 
 class Server : public NetworkMember
 {
 public:
-    Server(const char* __ipAdress, uint16_t __socket);
+    Server();
 
-    int TryToConnect() override;
+    bool TryToConnect(uint16_t __socket);
     
     void Connect() override;
+
+    void Reconnect() override {};
 
     void SendMessage() override;
 
     void RecievMessage() override;
 
+protected:
+    void getUserInput(uint16_t& __socket);
+
 private:
+    int socketDescriptor;
+    struct sockaddr_in socketParams;
+
     int clientSocketDescriptor = -1;
 };

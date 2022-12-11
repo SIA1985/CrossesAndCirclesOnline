@@ -1,185 +1,209 @@
 #include "Network.h"
 #include "algorithm"
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 #include "../Log/Log.h"
 
 
-NetworkMember::NetworkMember(const char* __ipAdress, uint16_t __socket)
-{
-    socketDescriptor = socket(AF_INET, SOCK_STREAM, 0); //Ipv4 + TCP
-    if(socketDescriptor < 0)
-    {
-        std::cout << "\nCan't create socket...\n";
-    }
-
-    socketParams.sin_family = AF_INET; 
-    socketParams.sin_port = htons(__socket);
-   // inet_pton(AF_INET, __ipAdress, &socketParams.sin_addr);
-   std::cout << inet_addr(__ipAdress) << std::endl;
-    socketParams.sin_addr.s_addr = htonl(INADDR_ANY);
-    std::cout <<socketParams.sin_addr.s_addr << std::endl;
-}
-
-void NetworkMember::Reconnect()
-{
-    Connected = false;
-    Connect();
-}
 
 void NetworkMember::SendMessagePrototype(int __socketDescriptor)
 {
-    if(Connected)
-    {
-        int Total = 0, Len = buffer.size(), BytesWereSend;
+    int Total = 0, Len = buffer.size(), BytesWereSend;
 
-        while(Total < Len)
+    while(Total < Len)
+    {
+        BytesWereSend =  send(__socketDescriptor, buffer.data() + Total, Len - Total, 0);
+
+        if(BytesWereSend == 0)
         {
-            BytesWereSend =  send(__socketDescriptor, buffer.data() + Total, Len - Total, 0);
-
-            if(BytesWereSend <= 0)
-            {
-                break;
-            }
-
-            Total += BytesWereSend;
+            Reconnect();
         }
-    }
-    else
-    {
-        Reconnect();
+
+        Total += BytesWereSend;
     }
 }
 
 void NetworkMember::RecievMessagePrototype(int __socketDescriptor)
 {
-   if(Connected)
-   {
-        int Total = 0, BytesWereReciev; 
+   int Total = 0, BytesWereReciev; 
 
-        BytesWereReciev = recv(__socketDescriptor, recvBuffer + Total, 512 - Total, 0);
+    BytesWereReciev = recv(__socketDescriptor, readWriteBuffer + Total, 512 - Total, 0);
 
-        if(BytesWereReciev == 0)
-            {
-                Reconnect();
-            }
-
-        Total += BytesWereReciev;
-        
-        
-        for(int i = 0; i < Total; i++)
-            buffer.push_back( *(recvBuffer + i) );
-
-   }
-   else
-   {
+    if(BytesWereReciev == 0)
+    {
         Reconnect();
-   }
+    }
+
+    Total += BytesWereReciev;
+        
+        
+    for(int i = 0; i < Total; i++)
+        buffer.push_back( *(readWriteBuffer + i) );
+}
+
+void NetworkMember::proccessError()
+{
+    switch (error)
+    {
+    case NetworkErrors::NoErrors:
+        break;
+
+    case NetworkErrors::CantCreateSocket:
+        LOG("Не удалось создать сокет!");
+        break;
+    
+    case NetworkErrors::CantConnect:
+        LOG("Не удалось установить соединение!");
+        break; 
+
+    case NetworkErrors::CantBindSocket:
+        LOG("Не удалось зарезервировать сокет!");
+        break; 
+
+    case NetworkErrors::CantAccept:
+        LOG("Не удалось принять подключение!");
+        break; 
+    }
 }
 
 
-Client::Client(const char* __ipAdress, uint16_t __socket) 
-: NetworkMember(__ipAdress, __socket)
+Client::Client()
 {
-
+    serverSocketParams.sin_family = AF_INET; 
 }
 
-int Client::TryToConnect()
+bool Client::TryToConnect(std::string __serverIPAddress, uint16_t __sereverSocket)
 {
-    //CONSOLE("\nTrying to connect...")
-    std::cout << "\nTrying to connect...";
-
-    int Result = connect(socketDescriptor, (struct sockaddr*)&socketParams, sizeof(socketParams));
-
-    if(Result >= 0)
+    serverSocketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    if(serverSocketDescriptor == -1)
     {
-     //   CONSOLE("Connected!\n")
-        std::cout << "\nConnected!";
-        Connected = true;
-        //Notify
-    }
-    else
-    {
-  //      LOG("Connection is failed\nReconnection in 5 seconds...\n")
-        Connected = false;
+        error = NetworkErrors::CantCreateSocket;
+        return false;
     }
 
-    return Result;
+    serverSocketParams.sin_addr.s_addr = inet_addr(__serverIPAddress.c_str()); 
+    serverSocketParams.sin_port = htons(__sereverSocket);
+
+    //inet_pton(AF_INET, __ipAdress, &socketParams.sin_addr);
+
+    CONSOLE("", "Устанавливается соединение, ожидайте...", '\n');
+    int result = connect(serverSocketDescriptor, (struct sockaddr*)&serverSocketParams, sizeof(serverSocketParams));
+
+    if(result < 0)
+    {
+        error = NetworkErrors::CantConnect;
+        return false;
+    }
+
+    return true;
+}
+
+void Client::getUserInput(std::string& __serverIPAddress, uint16_t& __sereverSocket)
+{
+    CLEAR_ALL_TERMINAL();
+
+    proccessError();
+
+    CONSOLE('\n', "IPv4 сервера:", " ");
+    std::cin >> __serverIPAddress;
+    CONSOLE("", "", '\n');
+
+    CONSOLE("", "Порт:", " ");
+    std::cin >> __sereverSocket;
+    CONSOLE("", "", '\n');
 }
 
 void Client::Connect()
 {
-    while(TryToConnect() < 0)
+    std::string serverIPAddress;
+    uint16_t serverSocket;
+
+    do
     {
-        sleep(5);
-        Connected = false;
-      //  OnConnectionChanged.Call();
+        getUserInput(serverIPAddress, serverSocket);
     }
-    
-    Connected = true;
-    //Notify
-    //  OnConnectionChanged.Call();
-        
+    while(!TryToConnect(serverIPAddress, serverSocket));
+
 }
 
 void Client::Reconnect()
 {
-    Connected = false;
-    close(socketDescriptor);
-    socketDescriptor = socket(AF_INET, SOCK_STREAM, 0); 
+    close(serverSocketDescriptor);
+    serverSocketDescriptor = socket(AF_INET, SOCK_STREAM, 0); 
+
     Connect();
 }
 
 void Client::SendMessage()
 {
-   SendMessagePrototype(socketDescriptor);
+   SendMessagePrototype(serverSocketDescriptor);
 }
 
 void Client::RecievMessage()
 {
-    RecievMessagePrototype(socketDescriptor);   
+    RecievMessagePrototype(serverSocketDescriptor);   
 }
 
 
-Server::Server(const char* __ipAdress, uint16_t __socket) 
-: NetworkMember(__ipAdress, __socket)
+Server::Server()
 {
-    if(bind(socketDescriptor, (struct sockaddr*)&socketParams, sizeof(socketParams)) < 0)
+    socketParams.sin_family = AF_INET; 
+    socketParams.sin_addr.s_addr = htonl(INADDR_ANY);
+}
+
+bool Server::TryToConnect(uint16_t __socket)
+{
+    socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    if(socketDescriptor == -1)
     {
- //       LOG("Can't bind socket\n")
-   //     CONSOLE("Waiting while OS makes socket free...\n")
-
-        std::cout << socketParams.sin_addr.s_addr << std::endl;
-
-        while(bind(socketDescriptor, (struct sockaddr*)&socketParams, sizeof(socketParams)) < 0)
-        {
-            sleep(30);
-        }
+        error = NetworkErrors::CantCreateSocket;
+        return false;
     }
+
+    socketParams.sin_port = htons(__socket);
+
+    int result = bind(socketDescriptor, (struct sockaddr*)&socketParams, sizeof(socketParams));
+
+    if(result < 0)
+    {
+        error = NetworkErrors::CantBindSocket;
+        return false;
+    }
+
+    CONSOLE("", "Ожидайте подключения...",  '\n'); 
+    listen(socketDescriptor, 1);
+
+    clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
+
+    if(clientSocketDescriptor < 0)
+    {
+        error = NetworkErrors::CantAccept;
+        return false;
+    }
+
+    return true;
+}
+
+void Server::getUserInput(uint16_t& __socket)
+{
+    CLEAR_ALL_TERMINAL();
+
+    proccessError();
+
+    CONSOLE("", "Порт:", " ");
+    std::cin >> __socket;
+    CONSOLE("", "", '\n');
 }
 
 void Server::Connect()
 {
-    TryToConnect();
-}
+    uint16_t serverSocket;
 
-int Server::TryToConnect()
-{
-    listen(socketDescriptor, 1);
-
-    clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
-    std::cout << "yes\n"; 
-
-    if(clientSocketDescriptor < 0)
+    do
     {
-    //    LOG("Can't accept\n")
-        std::cout << "\nCan't accept\n";
+        getUserInput(serverSocket);
     }
-
-    Connected = true;
- //   CONSOLE("Connected!\n")
-    std::cout << "Connected!\n";
-
-    return clientSocketDescriptor;
+    while(!TryToConnect(serverSocket));
 }
 
 void Server::SendMessage()
