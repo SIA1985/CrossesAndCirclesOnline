@@ -4,6 +4,8 @@
 #include <string>
 
 
+class NetworkMember;
+
 typedef unsigned short ushort;
 
 enum class FieldErrors : ushort
@@ -34,6 +36,12 @@ enum class GameStatus : ushort
     CrossWin            = 1,
     CircleWin           = 2,
     Draw                = 3
+};
+
+enum class PlayerSide : ushort
+{
+    Cross               = 0,
+    Circle              = 1
 };
 
 struct FieldCell
@@ -77,7 +85,7 @@ protected:
 
 class CNCGameField : public GameField
 {
-    friend class CNCGame;
+    friend class CNCGameOnline;
 
 public:
     void init(ushort __n);
@@ -101,10 +109,10 @@ private:
     FieldErrors error;
 };
 
-class CNCGame : public Game
+class CNCGameOnline : public Game
 {
 public:
-    CNCGame(ushort __fieldDim);
+    CNCGameOnline(ushort __fieldDim, PlayerSide __side, NetworkMember* __network);
 
     void operator()() override;
 
@@ -118,7 +126,7 @@ protected:
 
     bool getInput(ushort& __x, ushort& __y);
 
-    bool proccessGameInput(ushort& __x, ushort& __y);
+    bool proccessGameInputAndSend(ushort& __x, ushort& __y);
 
     bool proccessSaveResultsInput();
 
@@ -164,6 +172,10 @@ public:
     bool save();
 
 private:
+    PlayerSide side = PlayerSide::Cross;
+
+    NetworkMember* network;
+
     bool roolFlag = false; //If false - take cross, true - circle
     bool gameOverFlag = false;
 
@@ -172,7 +184,6 @@ private:
     ushort fieldDim;
 
     CNCGameField gameField;
-    //Network - ?
 
     EvalMatrix evals;
     short crossEval = -1;

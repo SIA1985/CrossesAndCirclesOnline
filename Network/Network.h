@@ -23,9 +23,9 @@ public:
 
     virtual void Reconnect() = 0;
 
-    virtual void SendMessage() = 0;
+    virtual void SendMessage(std::string __message) = 0;
 
-    virtual void RecievMessage() = 0;
+    virtual std::string RecievMessage() = 0;
 };
 
 class NetworkMember : public NetworkMemberBase
@@ -35,16 +35,16 @@ public:
 
     virtual void Reconnect() = 0;
 
-    virtual void SendMessage() = 0;
+    virtual void SendMessage(std::string __message) = 0;
 
-    virtual void RecievMessage() = 0;
+    virtual std::string RecievMessage() = 0;
 
 protected:
     void SendMessagePrototype(int __socketDescriptor);
 
     void RecievMessagePrototype(int __socketDescriptor);
 
-    void proccessError();
+    void logError();
 
     std::string buffer;
     char* readWriteBuffer = new char[4];
@@ -64,12 +64,14 @@ public:
 
     void Reconnect() override;
 
-    void SendMessage() override;
+    void SendMessage(std::string __message) override;
 
-    void RecievMessage() override;
+    std::string RecievMessage() override;
 
 protected:
     void getUserInput(std::string& __serverIPAddress, uint16_t& __sereverSocket);
+
+    bool checkConnection() {return true;}
 
 private:
     int serverSocketDescriptor;
@@ -87,9 +89,9 @@ public:
 
     void Reconnect() override {};
 
-    void SendMessage() override;
+    void SendMessage(std::string __message) override;
 
-    void RecievMessage() override;
+    std::string RecievMessage() override;
 
 protected:
     void getUserInput(uint16_t& __socket);

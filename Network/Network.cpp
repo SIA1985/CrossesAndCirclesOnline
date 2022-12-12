@@ -8,40 +8,40 @@
 
 void NetworkMember::SendMessagePrototype(int __socketDescriptor)
 {
-    int Total = 0, Len = buffer.size(), BytesWereSend;
+    int total = 0, len = buffer.size(), bytesWereSend;
 
-    while(Total < Len)
+    while(total < len)
     {
-        BytesWereSend =  send(__socketDescriptor, buffer.data() + Total, Len - Total, 0);
+        bytesWereSend =  send(__socketDescriptor, buffer.data() + total, len - total, 0);
 
-        if(BytesWereSend == 0)
+        if(bytesWereSend == 0)
         {
             Reconnect();
         }
 
-        Total += BytesWereSend;
+        total += bytesWereSend;
     }
 }
 
 void NetworkMember::RecievMessagePrototype(int __socketDescriptor)
 {
-   int Total = 0, BytesWereReciev; 
+   int total = 0, bytesWereReciev, recievBufferSize = sizeof(readWriteBuffer); 
 
-    BytesWereReciev = recv(__socketDescriptor, readWriteBuffer + Total, 512 - Total, 0);
+    bytesWereReciev = recv(__socketDescriptor, readWriteBuffer + total, recievBufferSize - total, 0);
 
-    if(BytesWereReciev == 0)
+    if(bytesWereReciev == 0)
     {
         Reconnect();
     }
 
-    Total += BytesWereReciev;
+    total += bytesWereReciev;
         
         
-    for(int i = 0; i < Total; i++)
+    for(int i = 0; i < total; i++)
         buffer.push_back( *(readWriteBuffer + i) );
 }
 
-void NetworkMember::proccessError()
+void NetworkMember::logError()
 {
     switch (error)
     {
@@ -102,7 +102,7 @@ void Client::getUserInput(std::string& __serverIPAddress, uint16_t& __sereverSoc
 {
     CLEAR_ALL_TERMINAL();
 
-    proccessError();
+    logError();
 
     CONSOLE('\n', "IPv4 сервера:", " ");
     std::cin >> __serverIPAddress;
@@ -123,7 +123,6 @@ void Client::Connect()
         getUserInput(serverIPAddress, serverSocket);
     }
     while(!TryToConnect(serverIPAddress, serverSocket));
-
 }
 
 void Client::Reconnect()
@@ -134,14 +133,22 @@ void Client::Reconnect()
     Connect();
 }
 
-void Client::SendMessage()
+void Client::SendMessage(std::string __message)
 {
+    buffer = __message;
+
    SendMessagePrototype(serverSocketDescriptor);
+
+   buffer.clear();
 }
 
-void Client::RecievMessage()
+std::string Client::RecievMessage()
 {
-    RecievMessagePrototype(serverSocketDescriptor);   
+    buffer.clear();
+
+    RecievMessagePrototype(serverSocketDescriptor);
+
+    return buffer;   
 }
 
 
@@ -188,7 +195,7 @@ void Server::getUserInput(uint16_t& __socket)
 {
     CLEAR_ALL_TERMINAL();
 
-    proccessError();
+    logError();
 
     CONSOLE("", "Порт:", " ");
     std::cin >> __socket;
@@ -206,14 +213,20 @@ void Server::Connect()
     while(!TryToConnect(serverSocket));
 }
 
-void Server::SendMessage()
+void Server::SendMessage(std::string __message)
 {
+    buffer = __message;
+
     SendMessagePrototype(clientSocketDescriptor);
     
+    buffer.clear();
 }
 
-void Server::RecievMessage()
-{
+std::string Server::RecievMessage()
+{   
+    buffer.clear();
+
     RecievMessagePrototype(clientSocketDescriptor);
     
+    return buffer;
 }

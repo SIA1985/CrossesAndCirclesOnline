@@ -1,50 +1,22 @@
 #include "Network/Network.h"
 #include "Interface/Interface.h"
 #include "Game/Game.h"
+#include "Player/Player.h"
 #include "Log/Log.h"
 
-#include <string>
 
 auto makeSessionFunction = []()
                                     {
-                                        /*
-                                        Player-Server() :
-                                        while(true)
-                                        {
-                                            Game();
+                                        PlayerServer player;
 
-                                            Restart?
-                                                Game.restart()
-                                            break;
-                                        }*/
-                                        //Player-server:
-                                        // CNCGame serverGame(5); // спросить о размерности поля
-                                        // serverGame();
-
-                                        Server server;
-
-                                        server.Connect();
-
-                                        std::cout << " \nПодключено!\n";
-
-                                        sleep(5);   
+                                        player();
                                     };
 
 auto joinSessionFunction = []()
                                     {
-                                        //Player-client
+                                        PlayerClient player;
 
-                                        //Cient client
-                                        //client.join()
-                                        //client.play()
-
-                                        Client client;
-
-                                        client.Connect();
-
-                                        std::cout << "\nПодключено!\n";
-
-                                        sleep(5);
+                                        player();
                                     };
 
 auto exitGameFunction = []()

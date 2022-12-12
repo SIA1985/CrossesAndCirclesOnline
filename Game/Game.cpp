@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "../Log/Log.h"
+#include "../Network/Network.h"
 
 #include <fstream>
 #include <chrono>
@@ -79,11 +80,13 @@ void CNCGameField::logError()
 }
 
 
-CNCGame::CNCGame(ushort __fieldDim)
+CNCGameOnline::CNCGameOnline(ushort __fieldDim, PlayerSide __side, NetworkMember* __network)
 {
     initField(__fieldDim);
 
     initEvals(__fieldDim);
+
+    side = __side;
 
     fieldDim = __fieldDim;
 
@@ -91,9 +94,11 @@ CNCGame::CNCGame(ushort __fieldDim)
     circleWinEval = fieldDim;
 
     moveCounter = fieldDim * fieldDim;
+
+    network = __network;
 }
 
-void CNCGame::initEvals(ushort __fieldDim)
+void CNCGameOnline::initEvals(ushort __fieldDim)
 {
     for(ushort i = 0; i < __fieldDim; i++)
     {
@@ -103,13 +108,13 @@ void CNCGame::initEvals(ushort __fieldDim)
     }
 }
 
-void CNCGame::initField(ushort __fieldDim)
+void CNCGameOnline::initField(ushort __fieldDim)
 {
     gameField.init(__fieldDim);
 }
 
 
-bool CNCGame::makeMove(ushort __x, ushort __y) 
+bool CNCGameOnline::makeMove(ushort __x, ushort __y) 
 {
     auto whosMakeNow = roolFlag ? CellStatus::Circle : CellStatus::Cross;
 
@@ -121,7 +126,7 @@ bool CNCGame::makeMove(ushort __x, ushort __y)
     return true;
 }
 
-void CNCGame::gameProccessing(ushort __x, ushort __y)
+void CNCGameOnline::gameProccessing(ushort __x, ushort __y)
 {
     addEval(__x, __y);
 
@@ -130,7 +135,7 @@ void CNCGame::gameProccessing(ushort __x, ushort __y)
     moveCounter--;
 }
 
-void CNCGame::addEval(ushort __x, ushort __y)
+void CNCGameOnline::addEval(ushort __x, ushort __y)
 {
     auto currentMoveEval = getEval();
 
@@ -145,21 +150,29 @@ void CNCGame::addEval(ushort __x, ushort __y)
             evals.submainDiagonalEval += currentMoveEval;
 }
 
-short CNCGame::getEval()
+short CNCGameOnline::getEval()
 {
     return roolFlag ? circleEval : crossEval;
 }
 
 
-bool CNCGame::getInput(ushort& __x, ushort& __y)
+bool CNCGameOnline::getInput(ushort& __x, ushort& __y)
 {
-    CONSOLE('\n', "> ", "");
-    std::cin >> input;
+    if(roolFlag == (side == PlayerSide::Cross ? false : true))
+    {
+        CONSOLE('\n', "> ", "");
+        std::cin >> input;
+    }
+    else
+    {
+        CONSOLE('\n', "Ожидаем ход соперника...", "");
+        input = network->RecievMessage();
+    }
 
-    return proccessGameInput(__x, __y);
+    return proccessGameInputAndSend(__x, __y);
 }
 
-bool CNCGame::proccessGameInput(ushort& __x, ushort& __y)
+bool CNCGameOnline::proccessGameInputAndSend(ushort& __x, ushort& __y)
 {
     if(input.size() != 2 || int(input[0]) < 48 || int(input[1]) < 48 
                          || int(input[0]) > 57 || int(input[1]) > 57)
@@ -171,18 +184,22 @@ bool CNCGame::proccessGameInput(ushort& __x, ushort& __y)
     __x = short(input[0]) - 48;
     __y = short(input[1]) - 48;
 
+
+    network->SendMessage(input);
+
+
     return true;
 }
 
 
-void CNCGame::operator()()
+void CNCGameOnline::operator()()
 {
     ushort x, y;
 
+    network->Connect();
+
     while(true)
     {
-        //while(notConneted){};
-
         display();
 
         if(status != GameStatus::GameContinues)
@@ -203,7 +220,7 @@ void CNCGame::operator()()
     }
 }
 
-GameStatus CNCGame::checkWin()
+GameStatus CNCGameOnline::checkWin()
 {
     if(evals.mainDiagonalEval == circleWinEval || evals.submainDiagonalEval == circleWinEval)
         return GameStatus::CircleWin;
@@ -238,7 +255,7 @@ GameStatus CNCGame::checkWin()
 }
 
 
-void CNCGame::display()
+void CNCGameOnline::display()
 {
     CLEAR_ALL_TERMINAL();
 
@@ -251,7 +268,7 @@ void CNCGame::display()
 
 
 template<typename T>
-void CNCGame::drawGame(T& __stream)
+void CNCGameOnline::drawGame(T& __stream)
 {
     drawTopNumbering<T>(__stream); 
 
@@ -272,7 +289,7 @@ void CNCGame::drawGame(T& __stream)
 }
 
 template<typename T>
-void CNCGame::drawTopNumbering(T& __stream)
+void CNCGameOnline::drawTopNumbering(T& __stream)
 {
     IN_STREAM_CONSOLE(__stream, "   ", "    ", "");
 
@@ -285,7 +302,7 @@ void CNCGame::drawTopNumbering(T& __stream)
 }
 
 template<typename T>
-void CNCGame::drawLeftSideNumbering(T& __stream)
+void CNCGameOnline::drawLeftSideNumbering(T& __stream)
 {
     IN_STREAM_CONSOLE(__stream, " ", leftSideNumering++, "");      
 
@@ -294,7 +311,7 @@ void CNCGame::drawLeftSideNumbering(T& __stream)
 }
 
 template<typename T>
-void CNCGame::drawGameStatus(T& __stream)
+void CNCGameOnline::drawGameStatus(T& __stream)
 {
     switch (status)
     {
@@ -315,7 +332,7 @@ void CNCGame::drawGameStatus(T& __stream)
     }
 }
 
-void CNCGame::logErrors()
+void CNCGameOnline::logErrors()
 {
     switch (error)
     {
@@ -330,7 +347,7 @@ void CNCGame::logErrors()
     gameField.logError();
 }
 
-char CNCGame::getSymbolByCell(CellStatus __status)
+char CNCGameOnline::getSymbolByCell(CellStatus __status)
 {
     switch (__status)
     {
@@ -348,7 +365,7 @@ char CNCGame::getSymbolByCell(CellStatus __status)
 }
 
 
-bool CNCGame::save()
+bool CNCGameOnline::save()
 {
     CONSOLE('\n', "Сохранить результат? (y/n)", "");
     CONSOLE('\n', "> ", "");
@@ -358,7 +375,7 @@ bool CNCGame::save()
     return proccessSaveResultsInput();
 }
 
-bool CNCGame::proccessSaveResultsInput()
+bool CNCGameOnline::proccessSaveResultsInput()
 {
     if(input.size() != 1 || (input != "y" && input != "n"))
     {
@@ -376,7 +393,7 @@ bool CNCGame::proccessSaveResultsInput()
     
 }
 
-void CNCGame::saveResultsInFile()
+void CNCGameOnline::saveResultsInFile()
 {
     auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -391,7 +408,7 @@ void CNCGame::saveResultsInFile()
 }
 
 
-void CNCGame::restart()
+void CNCGameOnline::restart()
 {
     cleanEvals();
     cleanField();
@@ -399,7 +416,7 @@ void CNCGame::restart()
     status = GameStatus::GameContinues;
 }
 
-void CNCGame::cleanEvals()
+void CNCGameOnline::cleanEvals()
 {
     for(auto&i : evals.rowsEvals)
         i = 0;
@@ -411,7 +428,7 @@ void CNCGame::cleanEvals()
     evals.submainDiagonalEval = 0;
 }
 
-void CNCGame::cleanField()
+void CNCGameOnline::cleanField()
 {
     gameField.cleanCells();
 
