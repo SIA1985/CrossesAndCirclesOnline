@@ -213,6 +213,14 @@ void Server::Connect()
     while(!TryToConnect(serverSocket));
 }
 
+void Server::Reconnect() //listen + accept
+{
+    CONSOLE("", "Ожидайте подключения...",  '\n'); 
+    listen(socketDescriptor, 1);
+
+    clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
+} 
+
 void Server::SendMessage(std::string __message)
 {
     buffer = __message;

@@ -78,8 +78,6 @@ protected:
     virtual bool makeMove(ushort __x, ushort __y) = 0;
 
     virtual GameStatus checkWin() = 0;
-
-    virtual void restart() = 0;
 };
 
 
@@ -116,8 +114,6 @@ public:
 
     void operator()() override;
 
-    void restart() override;
-
 protected:
     void initEvals(ushort __fieldDim);
 
@@ -126,9 +122,9 @@ protected:
 
     bool getInput(ushort& __x, ushort& __y);
 
-    bool proccessGameInputAndSend(ushort& __x, ushort& __y);
+    bool proccessGameInput(ushort& __x, ushort& __y);
 
-    bool proccessSaveResultsInput();
+    void proccessSaveResultsInput();
 
 
     bool makeMove(ushort __x, ushort __y) override;
@@ -161,15 +157,21 @@ protected:
     void logErrors();
 
 
+    bool restart();
+
+    bool proccessRestartInput();
+
+    bool newGame();
+
     void cleanEvals();
 
-     void cleanField();
+    void cleanField();
 
 
     void saveResultsInFile();
 
 public:
-    bool save();
+    void save();
 
 private:
     PlayerSide side = PlayerSide::Cross;

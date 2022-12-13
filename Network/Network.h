@@ -87,7 +87,7 @@ public:
     
     void Connect() override;
 
-    void Reconnect() override {};
+    void Reconnect() override; //listen + accept
 
     void SendMessage(std::string __message) override;
 

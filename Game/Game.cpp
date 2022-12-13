@@ -128,6 +128,11 @@ bool CNCGameOnline::makeMove(ushort __x, ushort __y)
 
 void CNCGameOnline::gameProccessing(ushort __x, ushort __y)
 {
+    if(roolFlag == (side == PlayerSide::Cross ? false : true))  
+    {
+        network->SendMessage(input);
+    }
+
     addEval(__x, __y);
 
     roolFlag = !roolFlag;
@@ -165,14 +170,14 @@ bool CNCGameOnline::getInput(ushort& __x, ushort& __y)
     }
     else
     {
-        CONSOLE('\n', "Ожидаем ход соперника...", "");
+        CONSOLE('\n', "Ожидаем ход соперника...", std::endl);
         input = network->RecievMessage();
     }
 
-    return proccessGameInputAndSend(__x, __y);
+    return proccessGameInput(__x, __y);
 }
 
-bool CNCGameOnline::proccessGameInputAndSend(ushort& __x, ushort& __y)
+bool CNCGameOnline::proccessGameInput(ushort& __x, ushort& __y)
 {
     if(input.size() != 2 || int(input[0]) < 48 || int(input[1]) < 48 
                          || int(input[0]) > 57 || int(input[1]) > 57)
@@ -183,10 +188,6 @@ bool CNCGameOnline::proccessGameInputAndSend(ushort& __x, ushort& __y)
 
     __x = short(input[0]) - 48;
     __y = short(input[1]) - 48;
-
-
-    network->SendMessage(input);
-
 
     return true;
 }
@@ -204,7 +205,9 @@ void CNCGameOnline::operator()()
 
         if(status != GameStatus::GameContinues)
         {
-            if(save())
+            save();
+
+            if(!restart())
                 break;
             
             continue;
@@ -365,32 +368,24 @@ char CNCGameOnline::getSymbolByCell(CellStatus __status)
 }
 
 
-bool CNCGameOnline::save()
+void CNCGameOnline::save()
 {
     CONSOLE('\n', "Сохранить результат? (y/n)", "");
     CONSOLE('\n', "> ", "");
 
     std::cin >> input;
 
-    return proccessSaveResultsInput();
+    proccessSaveResultsInput();
 }
 
-bool CNCGameOnline::proccessSaveResultsInput()
+void CNCGameOnline::proccessSaveResultsInput()
 {
-    if(input.size() != 1 || (input != "y" && input != "n"))
+    if(input.size() != 1 || input != "y")
     {
-        error = GameErrors::IncorrectInput;
-        return false;
+        return;
     }
     
-    if(input == "y")
-    {
-        saveResultsInFile();
-        return true;
-    }
-
-    return true;
-    
+    saveResultsInFile();
 }
 
 void CNCGameOnline::saveResultsInFile()
@@ -408,12 +403,43 @@ void CNCGameOnline::saveResultsInFile()
 }
 
 
-void CNCGameOnline::restart()
+bool CNCGameOnline::restart()
 {
+    CONSOLE('\n', "Сыграть ещё? (y/n)", "");
+    CONSOLE('\n', "> ", "");
+
+    std::cin >> input;
+
+    return proccessRestartInput();
+}
+
+bool CNCGameOnline::proccessRestartInput()
+{
+     if(input.size() != 1 || input != "y")
+    {
+        network->SendMessage("n");
+        return false;
+    }
+    
+    return newGame();
+}
+
+bool CNCGameOnline::newGame()
+{
+    network->SendMessage(input);
+
+    CONSOLE('\n', "Ожидаем ответа...", std::endl);
+    auto answer = network->RecievMessage();
+
+    if(answer != "y")
+        return false;
+
     cleanEvals();
     cleanField();
 
     status = GameStatus::GameContinues;
+
+    return true;
 }
 
 void CNCGameOnline::cleanEvals()
