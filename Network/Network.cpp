@@ -6,7 +6,7 @@
 
 
 
-void NetworkMember::SendMessagePrototype(int __socketDescriptor)
+int NetworkMember::SendMessagePrototype(int __socketDescriptor)
 {
     int total = 0, len = buffer.size(), bytesWereSend;
 
@@ -16,14 +16,17 @@ void NetworkMember::SendMessagePrototype(int __socketDescriptor)
 
         if(bytesWereSend == 0)
         {
-            Reconnect();
+            //Reconnect();
+            return 0;
         }
 
         total += bytesWereSend;
     }
+
+    return -1;
 }
 
-void NetworkMember::RecievMessagePrototype(int __socketDescriptor)
+int NetworkMember::RecievMessagePrototype(int __socketDescriptor)
 {
    int total = 0, bytesWereReciev, recievBufferSize = sizeof(readWriteBuffer); 
 
@@ -31,7 +34,8 @@ void NetworkMember::RecievMessagePrototype(int __socketDescriptor)
 
     if(bytesWereReciev == 0)
     {
-        Reconnect();
+        //Reconnect();
+        return 0;
     }
 
     total += bytesWereReciev;
@@ -39,6 +43,8 @@ void NetworkMember::RecievMessagePrototype(int __socketDescriptor)
         
     for(int i = 0; i < total; i++)
         buffer.push_back( *(readWriteBuffer + i) );
+
+    return -1;
 }
 
 void NetworkMember::logError()
@@ -83,8 +89,6 @@ bool Client::TryToConnect(std::string __serverIPAddress, uint16_t __sereverSocke
 
     serverSocketParams.sin_addr.s_addr = inet_addr(__serverIPAddress.c_str()); 
     serverSocketParams.sin_port = htons(__sereverSocket);
-
-    //inet_pton(AF_INET, __ipAdress, &socketParams.sin_addr);
 
     CONSOLE("", "Устанавливается соединение, ожидайте...", '\n');
     int result = connect(serverSocketDescriptor, (struct sockaddr*)&serverSocketParams, sizeof(serverSocketParams));
@@ -133,22 +137,26 @@ void Client::Reconnect()
     Connect();
 }
 
-void Client::SendMessage(std::string __message)
+int Client::SendMessage(std::string __message)
 {
     buffer = __message;
 
-   SendMessagePrototype(serverSocketDescriptor);
+   int result = SendMessagePrototype(serverSocketDescriptor);
 
    buffer.clear();
+
+   return result;
 }
 
-std::string Client::RecievMessage()
+int Client::RecievMessage(std::string& __input)
 {
     buffer.clear();
 
-    RecievMessagePrototype(serverSocketDescriptor);
+    int result = RecievMessagePrototype(serverSocketDescriptor);
 
-    return buffer;   
+    __input = buffer;   
+
+    return result;
 }
 
 
@@ -213,28 +221,29 @@ void Server::Connect()
     while(!TryToConnect(serverSocket));
 }
 
-void Server::Reconnect() //listen + accept
+void Server::Reconnect() 
 {
-    CONSOLE("", "Ожидайте подключения...",  '\n'); 
-    listen(socketDescriptor, 1);
-
-    clientSocketDescriptor = accept(socketDescriptor, NULL, NULL);
+    Connect();
 } 
 
-void Server::SendMessage(std::string __message)
+int Server::SendMessage(std::string __message)
 {
     buffer = __message;
 
-    SendMessagePrototype(clientSocketDescriptor);
+    int result = SendMessagePrototype(clientSocketDescriptor);
     
     buffer.clear();
+
+    return result;
 }
 
-std::string Server::RecievMessage()
+int Server::RecievMessage(std::string& __input)
 {   
     buffer.clear();
 
-    RecievMessagePrototype(clientSocketDescriptor);
+    int result = RecievMessagePrototype(clientSocketDescriptor);
     
-    return buffer;
+    __input = buffer;
+
+    return result;
 }

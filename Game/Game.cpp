@@ -171,7 +171,8 @@ bool CNCGameOnline::getInput(ushort& __x, ushort& __y)
     else
     {
         CONSOLE('\n', "Ожидаем ход соперника...", std::endl);
-        input = network->RecievMessage();
+        if(network->RecievMessage(input) == 0)
+            Connected = false;
     }
 
     return proccessGameInput(__x, __y);
@@ -199,7 +200,9 @@ void CNCGameOnline::operator()()
 
     network->Connect();
 
-    while(true)
+    Connected = true;
+
+    while(Connected)
     {
         display();
 
@@ -429,9 +432,13 @@ bool CNCGameOnline::newGame()
     network->SendMessage(input);
 
     CONSOLE('\n', "Ожидаем ответа...", std::endl);
-    auto answer = network->RecievMessage();
+    if(network->RecievMessage(input) == 0)
+    {
+        Connected = false;
+        return false;
+    }
 
-    if(answer != "y")
+    if(input != "y")
         return false;
 
     cleanEvals();

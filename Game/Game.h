@@ -177,6 +177,7 @@ private:
     PlayerSide side = PlayerSide::Cross;
 
     NetworkMember* network;
+    bool Connected = false;
 
     bool roolFlag = false; //If false - take cross, true - circle
     bool gameOverFlag = false;
@@ -202,12 +203,3 @@ private:
 
     short leftSideNumering = 0;
 };
-
-
-// enum class Player : ushort
-// {
-//     _1              = 1,
-//     _2              = 2
-// };
-
-// Player WhoIsTheFirst();
